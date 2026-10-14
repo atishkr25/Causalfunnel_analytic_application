@@ -4,6 +4,7 @@ import "./styles.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 const icon = (name) => ({ grid: "▦", map: "⌁", sessions: "◎", settings: "⚙", arrow: "→", click: "↗", page: "◌", input: "✎" }[name]);
+const apiFetch = (path) => fetch(`${API_URL}${path}${path.includes("?") ? "&" : "?"}_=${Date.now()}`, { cache: "no-store" });
 
 function formatRelative(date) {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 60000));
@@ -24,9 +25,9 @@ function App() {
     const query = selectedPage ? `?page=${encodeURIComponent(selectedPage)}` : "";
     try {
       const [sessionResponse, pageResponse, heatmapResponse] = await Promise.all([
-        fetch(`${API_URL}/api/sessions`),
-        fetch(`${API_URL}/api/pages`),
-        fetch(`${API_URL}/api/heatmap${query}`)
+        apiFetch("/api/sessions"),
+        apiFetch("/api/pages"),
+        apiFetch(`/api/heatmap${query}`)
       ]);
       const [sessionData, pageData, heatmapData] = await Promise.all([
         sessionResponse.ok ? sessionResponse.json() : [],
@@ -114,7 +115,7 @@ function SessionDrawer({ session, onClose }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_URL}/api/sessions/${encodeURIComponent(session.sessionId)}`)
+    apiFetch(`/api/sessions/${encodeURIComponent(session.sessionId)}`)
       .then((response) => response.ok ? response.json() : [])
       .then(setEvents)
       .finally(() => setLoading(false));
