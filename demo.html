@@ -6,6 +6,9 @@
   <input id="email" name="email" placeholder="Your work email">
   <button data-track="demo_cta" onclick="SignalAnalytics.track('demo_cta_clicked', { source: 'demo' })">Get started</button>
   <div style="height:900px;padding-top:80px"><h2>More product information</h2><p>Scroll depth events are sent at 25%, 50%, 75%, and 100%.</p></div>
+  <script>
+    window.SIGNAL_ANALYTICS_ENDPOINT = "https://causalfunnel-analytic-application-backend.onrender.com/api/events";
+  </script>
   <script src="./tracker/tracker.js"></script>
 </body>
 </html>
