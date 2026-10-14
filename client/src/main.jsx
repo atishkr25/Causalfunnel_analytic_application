@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
@@ -19,25 +19,37 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      fetch(`${API_URL}/api/sessions`).then((response) => response.ok ? response.json() : []),
-      fetch(`${API_URL}/api/pages`).then((response) => response.ok ? response.json() : []),
-      fetch(`${API_URL}/api/heatmap`).then((response) => response.ok ? response.json() : [])
-    ]).then(([sessionData, pageData, heatmapData]) => {
+  const loadAnalytics = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
+    const query = selectedPage ? `?page=${encodeURIComponent(selectedPage)}` : "";
+    try {
+      const [sessionResponse, pageResponse, heatmapResponse] = await Promise.all([
+        fetch(`${API_URL}/api/sessions`),
+        fetch(`${API_URL}/api/pages`),
+        fetch(`${API_URL}/api/heatmap${query}`)
+      ]);
+      const [sessionData, pageData, heatmapData] = await Promise.all([
+        sessionResponse.ok ? sessionResponse.json() : [],
+        pageResponse.ok ? pageResponse.json() : [],
+        heatmapResponse.ok ? heatmapResponse.json() : []
+      ]);
       setSessions(sessionData);
       setPages(pageData);
       setHeatmap(heatmapData);
-    }).finally(() => setLoading(false));
-  }, []);
+    } catch (_error) {
+      setSessions([]);
+      setPages([]);
+      setHeatmap([]);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, [selectedPage]);
 
   useEffect(() => {
-    const query = selectedPage ? `?page=${encodeURIComponent(selectedPage)}` : "";
-    fetch(`${API_URL}/api/heatmap${query}`)
-      .then((response) => response.ok ? response.json() : [])
-      .then(setHeatmap)
-      .catch(() => setHeatmap([]));
-  }, [selectedPage]);
+    loadAnalytics(true);
+    const refreshTimer = window.setInterval(() => loadAnalytics(), 5000);
+    return () => window.clearInterval(refreshTimer);
+  }, [loadAnalytics]);
 
   const totals = useMemo(() => ({
     sessions: sessions.length,
@@ -62,7 +74,7 @@ function App() {
         <div className="sidebar-footer"><div className="plan-bar"><span>Free plan</span><b>65% used</b></div><div className="progress"><i /></div><button className="upgrade">Upgrade plan <span>{icon("arrow")}</span></button><div className="user"><span className="user-avatar">AT</span><span><b>atish</b><small>atish@example.com</small></span><span className="more">•••</span></div></div>
       </aside>
       <main className="main">
-        <header className="topbar"><div><h1>{view === "heatmap" ? "Heatmap" : view === "sessions" ? "Sessions" : "Overview"}</h1><p>See how visitors use your site.</p></div><div className="top-actions"><button className="date-button">Last 7 days <span>⌄</span></button><button className="icon-button">⋯</button></div></header>
+        <header className="topbar"><div><h1>{view === "heatmap" ? "Heatmap" : view === "sessions" ? "Sessions" : "Overview"}</h1><p>See how visitors use your site.</p></div><div className="top-actions"><button className="date-button">Last 7 days <span>⌄</span></button><button className="icon-button" onClick={() => loadAnalytics()} title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></header>
         {loading ? <div className="empty-state">Loading your analytics...</div> : view === "heatmap" ? <Heatmap points={heatmap} pages={pages} selectedPage={selectedPage} onPageChange={setSelectedPage} /> : view === "sessions" ? <Sessions sessions={sessions} onSelect={setSelected} /> : <Overview totals={totals} sessions={sessions} onSelect={setSelected} onHeatmap={() => setView("heatmap")} />}
       </main>
       {selected && <SessionDrawer session={selected} onClose={() => setSelected(null)} />}

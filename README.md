@@ -1,37 +1,52 @@
-# Signal — User Analytics
+# Signal Analytics
 
-Signal is a lightweight full-stack analytics app for seeing how visitors use a website. It includes a drop-in browser tracker, a Node.js API backed by MongoDB, and a React dashboard for sessions and interaction heatmaps.
+Signal is a small analytics app that shows how people use a website. It records page views, clicks, form inputs, scroll depth, and custom events. The dashboard groups these events into sessions and displays user journeys and click heatmaps.
 
-## Features
+## What is included?
 
-- **Drop-in event tracker:** captures page views, clicks, form input, scroll depth, and custom events.
-- **Session analytics:** groups events by a browser session and shows recent activity, pages, devices, event counts, and the ordered event journey.
-- **Interaction heatmap:** visualizes click and input coordinates collected across tracked pages, with a page URL selector.
-- **MongoDB storage:** uses indexed event documents designed for session and page queries.
-- **Responsive dashboard:** overview metrics, activity chart, session table, session details drawer, and heatmap view.
+- React dashboard for analytics
+- Express API for collecting and reading events
+- MongoDB storage through Mongoose
+- Standalone browser tracker
+- Demo page for creating real events
+- Session timeline and click/input heatmap
 
-## Tech stack
+## Technology stack
 
-- Frontend: React.js with Vite
+- Frontend: React.js and Vite
 - Styling: Tailwind CSS and CSS components
-- Backend: Node.js with Express.js
-- Database: MongoDB with Mongoose
-- Tracker: framework-independent Vanilla JavaScript
+- Backend: Node.js and Express.js
+- Database: MongoDB and Mongoose
+- Tracking: Vanilla JavaScript
 - API calls: Fetch API
-- Backend tests: Jest and Supertest
 - Frontend tests: Vitest
+- Backend tests: Jest and Supertest
 
-## Setup steps
+## Project structure
 
-You need Node.js 18 or newer and a running MongoDB database.
+```text
+client/          React + Vite dashboard
+server/          Express API and Mongoose model
+tracker/         Framework-independent tracking script
+demo.html        Local demo page
+vercel.json      Vercel routes for /analytics and /demo
+```
+
+## Run the project locally
+
+### Requirements
+
+- Node.js 18 or newer
+- MongoDB running locally or a MongoDB Atlas database
+
+### Install
 
 ```bash
 npm install
 cp .env.example .env
-npm run dev
 ```
 
-Set these values in `.env` before starting the app:
+Update `.env` with your database settings:
 
 ```env
 PORT=4000
@@ -41,81 +56,142 @@ CLIENT_ORIGIN=http://localhost:5173
 VITE_API_URL=http://localhost:4000
 ```
 
-The dashboard runs at `http://localhost:5173`. The API runs at `http://localhost:4000`.
+Start the dashboard and API together:
 
-Check the API with:
-
-```text
-http://localhost:4000/api/health
+```bash
+npm run dev
 ```
 
-To test tracking, serve the project folder and open the demo:
+Local URLs:
+
+- Dashboard: `http://localhost:5173`
+- API health check: `http://localhost:4000/api/health`
+
+## Test the real tracking flow
+
+Serve the project folder:
 
 ```bash
 npx serve .
 ```
 
-Then open `http://localhost:3000/demo.html`, interact with the page, and refresh the dashboard.
+Then open:
 
+```text
+http://localhost:3000/demo.html
+```
 
-## Project structure
+On the demo page:
 
-- `client/` — React + Vite dashboard, styled with Tailwind CSS and dashboard CSS components.
-- `server/` — Express REST API, Mongoose `Event` model, validation/normalization, and error handling.
-- `tracker/` — framework-independent browser tracking script.
-- `server/*.test.js` — Jest/Supertest backend tests; `client/**/*.test.jsx` — Vitest frontend tests.
+1. Load the page.
+2. Click the email input.
+3. Type a test value.
+4. Click **Get started**.
+5. Scroll down the page.
+6. Open the dashboard and refresh it.
 
-## Embed the tracker
+The tracker sends real browser timestamps and events to the API. The session should then appear in the dashboard.
 
-Add `tracker/tracker.js` to any page. It automatically creates or reuses a session ID in `localStorage`:
+## Production URLs
+
+After deployment, the Vercel routes are:
+
+```text
+https://your-vercel-domain.vercel.app/analytics
+https://your-vercel-domain.vercel.app/demo
+```
+
+The demo sends events to the deployed Render API:
+
+```text
+https://your-backend.onrender.com/api/events
+```
+
+Open `/demo`, interact with the page, then open `/analytics`. The dashboard refreshes automatically every five seconds; you can also use the refresh button.
+
+## API routes
+
+```text
+GET  /api/health
+POST /api/events
+GET  /api/sessions
+GET  /api/sessions/:sessionId
+GET  /api/pages
+GET  /api/heatmap?page=<page-url>
+```
+
+`POST /api/events` accepts one event or an array of up to 50 events.
+
+## Add the tracker to another website
 
 ```html
 <script>
-  window.SIGNAL_ANALYTICS_ENDPOINT = "https://your-api.example.com/api/events";
+  window.SIGNAL_ANALYTICS_ENDPOINT =
+    "https://your-backend.onrender.com/api/events";
 </script>
-<script src="https://your-site.example.com/tracker/tracker.js"></script>
+<script src="https://your-static-host.com/tracker/tracker.js"></script>
 ```
 
-Captured event documents include `eventId`, `sessionId`, `type`, `name`, `timestamp`, `page`, `referrer`, `userAgent`, `viewport`, `position`, `target`, and optional `metadata`.
-
-Custom events are available after the script loads:
+The tracker creates or reuses a session ID in `localStorage` and exposes custom events through:
 
 ```js
-window.SignalAnalytics.track("checkout_started", { cartValue: 129.99 });
+window.SignalAnalytics.track("checkout_started", {
+  cartValue: 129.99
+});
 ```
 
-## API
+## Environment variables
 
-- `POST /api/events` — accepts one event or an array of up to 50 events.
-- `GET /api/sessions` — returns grouped sessions.
-- `GET /api/sessions/:sessionId` — returns the event timeline for one session.
-- `GET /api/pages` — returns tracked page URLs for the heatmap selector.
-- `GET /api/heatmap?page=/optional-path` — returns click and input points.
-- `GET /api/health` — health check.
+Local development uses `.env`. Production services need their own environment variables.
 
-All API configuration is environment-driven. Copy `.env.example` to `.env` and set `MONGODB_URI`, `MONGODB_DB`, `CLIENT_ORIGIN`, and `VITE_API_URL` for the target environment.
+### Render backend
 
-## Test and production commands
+```env
+MONGODB_URI=your-mongodb-atlas-uri
+MONGODB_DB=causalfunnel_analytics
+NODE_ENV=production
+CLIENT_ORIGIN=https://your-vercel-domain.vercel.app
+```
+
+Render settings:
+
+```text
+Root Directory: blank
+Build Command: npm install
+Start Command: npm start
+```
+
+### Vercel frontend
+
+```env
+VITE_API_URL=https://your-backend.onrender.com
+```
+
+Vercel settings:
+
+```text
+Root Directory: blank
+Build Command: npm run build
+Output Directory: dist
+```
+
+Never commit `.env` or database credentials to GitHub.
+
+## Testing and build commands
 
 ```bash
 npm run test:server
 npm run test:client
+npm test
 npm run build
-NODE_ENV=production npm start
 ```
-
-For production, build the Vite client, serve the generated `dist/` directory from your static host, and run the Express process with a reachable MongoDB connection string. Set `CLIENT_ORIGIN` to the deployed dashboard origin and set `VITE_API_URL` before building the client.
 
 ## Assumptions and trade-offs
 
-- A session is identified with a browser `localStorage` value. Clearing browser storage creates a new session.
-- The tracker does not require user login, so sessions are anonymous.
-- Click and input positions are approximate browser coordinates. They are useful for trends, not exact screen recordings.
-- The API accepts up to 50 events in one request to keep requests small and safe.
-- The dashboard currently loads recent data from the API; it does not include user accounts or role-based access.
-- MongoDB is required for persistent data. If MongoDB is unavailable, the API cannot save or query analytics data.
-- The chart on the overview page is a simple visual summary. Detailed activity is available in the Sessions and Heatmap views.
-
-## Data model
-
-Events are stored in the `events` collection in the configured MongoDB database. Compound indexes on `(sessionId, timestamp)` and `(type, page, timestamp)` support the dashboard queries.
+- Sessions are anonymous. The tracker identifies a browser using `localStorage` and does not require login.
+- Clearing browser storage creates a new session.
+- Click and input coordinates are approximate. They show interaction patterns, not screen recordings.
+- The API limits each event request to 50 events to keep requests small.
+- MongoDB is required for permanent storage. If MongoDB is unavailable, events cannot be saved.
+- The dashboard has no user accounts or role-based access yet.
+- The overview chart is a simple visual summary. The Sessions and Heatmap pages show the detailed data.
