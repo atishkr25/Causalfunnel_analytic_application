@@ -10,9 +10,20 @@ Signal is a lightweight full-stack analytics app for seeing how visitors use a w
 - **MongoDB storage:** uses indexed event documents designed for session and page queries.
 - **Responsive dashboard:** overview metrics, activity chart, session table, session details drawer, and heatmap view.
 
-## Run locally
+## Tech stack
 
-Requirements: Node.js 18+ and a running MongoDB instance.
+- Frontend: React.js with Vite
+- Styling: Tailwind CSS and CSS components
+- Backend: Node.js with Express.js
+- Database: MongoDB with Mongoose
+- Tracker: framework-independent Vanilla JavaScript
+- API calls: Fetch API
+- Backend tests: Jest and Supertest
+- Frontend tests: Vitest
+
+## Setup steps
+
+You need Node.js 18 or newer and a running MongoDB database.
 
 ```bash
 npm install
@@ -20,9 +31,32 @@ cp .env.example .env
 npm run dev
 ```
 
-The dashboard runs at `http://localhost:5173`, and the API runs at `http://localhost:4000`.
+Set these values in `.env` before starting the app:
 
-To try the tracker, open [`demo.html`](./demo.html) in a browser served from the project directory (for example, `npx serve .`), interact with the page, and refresh the dashboard.
+```env
+PORT=4000
+MONGODB_URI=mongodb://127.0.0.1:27017/causalfunnel_analytics
+MONGODB_DB=causalfunnel_analytics
+CLIENT_ORIGIN=http://localhost:5173
+VITE_API_URL=http://localhost:4000
+```
+
+The dashboard runs at `http://localhost:5173`. The API runs at `http://localhost:4000`.
+
+Check the API with:
+
+```text
+http://localhost:4000/api/health
+```
+
+To test tracking, serve the project folder and open the demo:
+
+```bash
+npx serve .
+```
+
+Then open `http://localhost:3000/demo.html`, interact with the page, and refresh the dashboard.
+
 
 ## Project structure
 
@@ -71,6 +105,16 @@ NODE_ENV=production npm start
 ```
 
 For production, build the Vite client, serve the generated `dist/` directory from your static host, and run the Express process with a reachable MongoDB connection string. Set `CLIENT_ORIGIN` to the deployed dashboard origin and set `VITE_API_URL` before building the client.
+
+## Assumptions and trade-offs
+
+- A session is identified with a browser `localStorage` value. Clearing browser storage creates a new session.
+- The tracker does not require user login, so sessions are anonymous.
+- Click and input positions are approximate browser coordinates. They are useful for trends, not exact screen recordings.
+- The API accepts up to 50 events in one request to keep requests small and safe.
+- The dashboard currently loads recent data from the API; it does not include user accounts or role-based access.
+- MongoDB is required for persistent data. If MongoDB is unavailable, the API cannot save or query analytics data.
+- The chart on the overview page is a simple visual summary. Detailed activity is available in the Sessions and Heatmap views.
 
 ## Data model
 
