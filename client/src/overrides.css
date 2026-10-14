@@ -1,0 +1,98 @@
+kbutton,
+select {
+  cursor: pointer;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid #d8d1ff;
+  outline-offset: 2px;
+}
+
+.date-control {
+  position: relative;
+}
+
+.date-menu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 5;
+  min-width: 145px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e4e3ee;
+  border-radius: 8px;
+  box-shadow: 0 12px 25px #30285c18;
+}
+
+.date-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: #fff;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 5px;
+  color: #626475;
+  font: 500 12px "DM Sans";
+}
+
+.date-menu button:hover {
+  background: #f3f1ff;
+  color: #6651d5;
+}
+
+.date-button:hover,
+.filter-button:hover,
+.icon-button:hover,
+.export-button:hover {
+  border-color: #b9aff5;
+  background: #f8f7ff;
+  color: #5f4bcc;
+}
+
+.icon-button:hover {
+  transform: rotate(12deg);
+}
+
+.upgrade:hover {
+  background: #ece8ff;
+  border-color: #cfc5ff;
+}
+
+.text-button:hover {
+  color: #4e39bb;
+  transform: translateX(2px);
+}
+
+.export-button:active,
+.icon-button:active,
+.text-button:active {
+  transform: scale(.97);
+}
+
+.search:focus-within {
+  border-color: #b9aff5;
+  box-shadow: 0 0 0 3px #eeeaff;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  background: #25233a;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px #25233a35;
+  font-size: 12px;
+  animation: toast-in .2s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

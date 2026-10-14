@@ -2,13 +2,24 @@
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Signal tracker demo</title><style>body{font:16px system-ui;max-width:760px;margin:60px auto;padding:0 20px;color:#28233e}button{background:#6d55df;color:white;border:0;padding:12px 18px;border-radius:6px;cursor:pointer}input{display:block;margin:18px 0;padding:12px;width:100%;box-sizing:border-box}</style></head>
 <body>
-  <p>TRACKING DEMO</p><h1>Make every interaction useful.</h1><p>Click, type, and scroll this page. Open the dashboard to see the events arrive in real time.</p>
+  <p>TRACKING DEMO</p><h1>Make every interaction useful.</h1><p>Click, type, and scroll this page. Open the dashboard to see the events arrive in real time.</p><p id="tracking-status" style="font-size:13px;color:#6b5bd5">Connecting to analytics...</p>
   <input id="email" name="email" placeholder="Your work email">
   <button data-track="demo_cta" onclick="SignalAnalytics.track('demo_cta_clicked', { source: 'demo' })">Get started</button>
   <div style="height:900px;padding-top:80px"><h2>More product information</h2><p>Scroll depth events are sent at 25%, 50%, 75%, and 100%.</p></div>
   <script>
     window.SIGNAL_ANALYTICS_ENDPOINT = "https://causalfunnel-analytic-application-backend.onrender.com/api/events";
   </script>
-  <script src="./tracker/tracker.js"></script>
+  <script src="/tracker/tracker.js"></script>
+  <script>
+    var trackingStatus = document.getElementById("tracking-status");
+    window.SignalAnalytics.onSent = function () {
+      trackingStatus.textContent = "Analytics connected · latest event sent";
+      trackingStatus.style.color = "#249875";
+    };
+    window.SignalAnalytics.onError = function () {
+      trackingStatus.textContent = "Analytics could not connect. Check the API deployment.";
+      trackingStatus.style.color = "#c45858";
+    };
+  </script>
 </body>
 </html>

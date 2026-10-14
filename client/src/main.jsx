@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
+import "./overrides.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 const icon = (name) => ({ grid: "▦", map: "⌁", sessions: "◎", settings: "⚙", arrow: "→", click: "↗", page: "◌", input: "✎" }[name]);
@@ -19,6 +20,14 @@ function App() {
   const [selectedPage, setSelectedPage] = useState("");
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+  const [dateRange, setDateRange] = useState("Last 7 days");
+  const [dateMenuOpen, setDateMenuOpen] = useState(false);
+
+  function showNotice(message) {
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 2600);
+  }
 
   const loadAnalytics = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
@@ -70,15 +79,16 @@ function App() {
           <button className={view === "sessions" ? "nav-item active" : "nav-item"} onClick={() => setView("sessions")}>{icon("sessions")} Sessions <span className="nav-count">{sessions.length}</span></button>
           <button className={view === "heatmap" ? "nav-item active" : "nav-item"} onClick={() => setView("heatmap")}>{icon("map")} Heatmap</button>
           <p className="nav-label">Manage</p>
-          <button className="nav-item">{icon("settings")} Settings</button>
+          <button className="nav-item" onClick={() => showNotice("Settings are ready for a future workspace update.")}>{icon("settings")} Settings</button>
         </nav>
-        <div className="sidebar-footer"><div className="plan-bar"><span>Free plan</span><b>65% used</b></div><div className="progress"><i /></div><button className="upgrade">Upgrade plan <span>{icon("arrow")}</span></button><div className="user"><span className="user-avatar">AT</span><span><b>atish</b><small>atish@example.com</small></span><span className="more">•••</span></div></div>
+        <div className="sidebar-footer"><div className="plan-bar"><span>Free plan</span><b>65% used</b></div><div className="progress"><i /></div><button className="upgrade" onClick={() => showNotice("Upgrade checkout is not connected in this demo.")}>Upgrade plan <span>{icon("arrow")}</span></button><div className="user"><span className="user-avatar">AT</span><span><b>atish</b><small>atish@example.com</small></span><span className="more">•••</span></div></div>
       </aside>
       <main className="main">
-        <header className="topbar"><div><h1>{view === "heatmap" ? "Heatmap" : view === "sessions" ? "Sessions" : "Overview"}</h1><p>See how visitors use your site.</p></div><div className="top-actions"><button className="date-button">Last 7 days <span>⌄</span></button><button className="icon-button" onClick={() => loadAnalytics()} title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></header>
+        <header className="topbar"><div><h1>{view === "heatmap" ? "Heatmap" : view === "sessions" ? "Sessions" : "Overview"}</h1><p>See how visitors use your site.</p></div><div className="top-actions"><div className="date-control"><button className="date-button" onClick={() => setDateMenuOpen(!dateMenuOpen)}>{dateRange} <span>⌄</span></button>{dateMenuOpen && <div className="date-menu">{["Last 7 days", "Last 30 days", "All time"].map((option) => <button key={option} onClick={() => { setDateRange(option); setDateMenuOpen(false); }}>{option}</button>)}</div>}</div><button className="icon-button" onClick={() => loadAnalytics()} title="Refresh analytics" aria-label="Refresh analytics">↻</button></div></header>
         {loading ? <div className="empty-state">Loading your analytics...</div> : view === "heatmap" ? <Heatmap points={heatmap} pages={pages} selectedPage={selectedPage} onPageChange={setSelectedPage} /> : view === "sessions" ? <Sessions sessions={sessions} onSelect={setSelected} /> : <Overview totals={totals} sessions={sessions} onSelect={setSelected} onHeatmap={() => setView("heatmap")} />}
       </main>
       {selected && <SessionDrawer session={selected} onClose={() => setSelected(null)} />}
+      {notice && <div className="toast">{notice}</div>}
     </div>
   );
 }
@@ -100,7 +110,29 @@ function Stat({ label, value, delta, color }) { return <div className="stat-card
 
 function ActivityChart() { const bars = [35, 42, 32, 56, 48, 70, 62, 50, 58, 76, 64, 82, 75, 90, 68, 79, 94, 78, 88, 72, 84, 68, 76, 91, 80, 96, 86, 72, 66, 84]; return <div className="chart"><div className="y-axis"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div className="bars">{bars.map((height, index) => <div className="bar-column" key={index}><i className="bar events" style={{ height: `${height}%` }} /><i className="bar sessions-bar" style={{ height: `${height * .65}%` }} /></div>)}</div><div className="x-axis"><span>Oct 09</span><span>Oct 10</span><span>Oct 11</span><span>Oct 12</span><span>Oct 13</span><span>Oct 14</span><span>Oct 15</span></div></div>; }
 
-function Sessions({ sessions, onSelect }) { return <div className="content"><div className="filter-row"><div className="search">⌕ <input placeholder="Search sessions..." /></div><button className="filter-button">All pages ⌄</button><button className="filter-button">All events ⌄</button></div><div className="panel"><div className="panel-heading"><div><h2>All sessions</h2><p>{sessions.length} sessions in the selected period</p></div><button className="export-button">Export CSV</button></div><SessionTable sessions={sessions} onSelect={onSelect} /></div></div>; }
+function Sessions({ sessions, onSelect }) {
+  const [search, setSearch] = useState("");
+  const [pageFilter, setPageFilter] = useState("");
+  const [eventFilter, setEventFilter] = useState("");
+  const pages = [...new Set(sessions.flatMap((session) => session.pages))].sort();
+  const filteredSessions = sessions.filter((session) => {
+    const text = `${session.sessionId} ${session.pages.join(" ")}`.toLowerCase();
+    const matchesSearch = text.includes(search.toLowerCase());
+    const matchesPage = !pageFilter || session.pages.includes(pageFilter);
+    const matchesEvent = !eventFilter || (eventFilter === "page_view" ? session.pageViews > 0 : session.eventCount > session.pageViews);
+    return matchesSearch && matchesPage && matchesEvent;
+  });
+  function exportCsv() {
+    const rows = [["sessionId", "startedAt", "eventCount", "pageViews", "pages"], ...filteredSessions.map((session) => [session.sessionId, session.startedAt, session.eventCount, session.pageViews, session.pages.join(" | ")])];
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    link.download = "signal-sessions.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+  return <div className="content"><div className="filter-row"><div className="search">⌕ <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search sessions..." /></div><select className="filter-button" value={pageFilter} onChange={(event) => setPageFilter(event.target.value)}><option value="">All pages</option>{pages.map((page) => <option key={page} value={page}>{page}</option>)}</select><select className="filter-button" value={eventFilter} onChange={(event) => setEventFilter(event.target.value)}><option value="">All events</option><option value="page_view">Page views</option><option value="interaction">Interactions</option></select></div><div className="panel"><div className="panel-heading"><div><h2>All sessions</h2><p>{filteredSessions.length} sessions in the selected period</p></div><button className="export-button" onClick={exportCsv}>Export CSV</button></div><SessionTable sessions={filteredSessions} onSelect={onSelect} /></div></div>;
+}
 
 function SessionTable({ sessions, onSelect }) { return <div className="table-wrap"><table><thead><tr><th>SESSION</th><th>STARTED</th><th>EVENTS</th><th>PAGES</th><th>DEVICE</th><th /></tr></thead><tbody>{sessions.map((session) => <tr key={session.sessionId} onClick={() => onSelect(session)}><td><span className="session-id">{session.sessionId.slice(0, 12)}...</span></td><td>{formatRelative(session.startedAt)}</td><td><b>{session.eventCount}</b></td><td><span className="page-pill">{session.pageViews} page views</span></td><td><span className="device">{session.device?.includes("Mobile") ? "◧ Mobile" : "▣ Desktop"}</span></td><td><span className="row-arrow">{icon("arrow")}</span></td></tr>)}</tbody></table>{!sessions.length && <div className="empty-state compact">No sessions yet. Add the tracker to your demo page to see data here.</div>}</div>; }
 
